@@ -46,6 +46,15 @@ RCT_EXPORT_METHOD(readAsText:(NSDictionary<NSString *, id> *)blob
   }
 }
 
+RCT_EXPORT_METHOD(removeBlob:(NSDictionary<NSString *, id> *)blob)
+{
+  RCTBlobManager *blobManager = [[self bridge] moduleForClass:[RCTBlobManager class]];
+  NSString *blobId = [RCTConvert NSString:blob[@"blobId"]];
+  if (blobId) {
+    [blobManager remove:blobId];
+  }
+}
+
 RCT_EXPORT_METHOD(readAsDataURL:(NSDictionary<NSString *, id> *)blob
                   resolve:(RCTPromiseResolveBlock)resolve
                   reject:(RCTPromiseRejectBlock)reject)

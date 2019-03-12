@@ -203,10 +203,11 @@
     body.bodyUsed = true;
   }
 
-  function fileReaderReady(reader) {
+  function fileReaderReady(reader, blob) {
     return new Promise(function(resolve, reject) {
       reader.onload = function() {
         resolve(reader.result);
+        reader.removeBlob(blob);
       };
       reader.onerror = function() {
         reject(reader.error);
@@ -216,14 +217,14 @@
 
   function readBlobAsArrayBuffer(blob) {
     var reader = new FileReader();
-    var promise = fileReaderReady(reader);
+    var promise = fileReaderReady(reader, blob);
     reader.readAsArrayBuffer(blob);
     return promise;
   }
 
   function readBlobAsText(blob) {
     var reader = new FileReader();
-    var promise = fileReaderReady(reader);
+    var promise = fileReaderReady(reader, blob);
     reader.readAsText(blob);
     return promise;
   }

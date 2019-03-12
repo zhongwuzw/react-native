@@ -126,6 +126,10 @@ class FileReader extends EventTarget(...READER_EVENTS) {
     );
   }
 
+  removeBlob(blob: Blob) {
+    FileReaderModule.removeBlob(blob.data);
+  }
+
   abort() {
     this._aborted = true;
     // only call onreadystatechange if there is something to abort, as per spec
