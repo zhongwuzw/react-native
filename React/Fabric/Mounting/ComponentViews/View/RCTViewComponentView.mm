@@ -29,8 +29,12 @@ using namespace facebook::react;
     static const auto defaultProps = std::make_shared<const ViewProps>();
     _props = defaultProps;
   }
-
   return self;
+}
+
+- (facebook::react::SharedProps)props
+{
+  return _props;
 }
 
 - (void)setContentView:(UIView *)contentView
@@ -356,10 +360,14 @@ static RCTBorderStyle RCTBorderStyleFromBorderStyle(BorderStyle borderStyle)
 
 - (void)invalidateLayer
 {
+  CALayer *layer = self.layer;
+
+  if (CGSizeEqualToSize(layer.bounds.size, CGSizeZero)) {
+    return;
+  }
+
   const auto borderMetrics =
       _props->resolveBorderMetrics(_layoutMetrics.layoutDirection == LayoutDirection::RightToLeft);
-
-  CALayer *layer = self.layer;
 
   // Stage 1. Shadow Path
   BOOL layerHasShadow = layer.shadowOpacity > 0 && CGColorGetAlpha(layer.shadowColor) > 0;

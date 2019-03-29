@@ -20,7 +20,6 @@ import android.view.View;
 import com.facebook.common.logging.FLog;
 import com.facebook.debug.holder.PrinterHolder;
 import com.facebook.debug.tags.ReactDebugOverlayTags;
-import com.facebook.react.animation.Animation;
 import com.facebook.react.bridge.Arguments;
 import com.facebook.react.bridge.Callback;
 import com.facebook.react.bridge.GuardedRunnable;
@@ -635,23 +634,6 @@ public class UIManagerModule extends ReactContextBaseJavaModule
     mUIImplementation.viewIsDescendantOf(reactTag, ancestorReactTag, callback);
   }
 
-  /** Registers a new Animation that can then be added to a View using {@link #addAnimation}. */
-  public void registerAnimation(Animation animation) {
-    mUIImplementation.registerAnimation(animation);
-  }
-
-  /**
-   * Adds an Animation previously registered with {@link #registerAnimation} to a View and starts it
-   */
-  public void addAnimation(int reactTag, int animationID, Callback onSuccess) {
-    mUIImplementation.addAnimation(reactTag, animationID, onSuccess);
-  }
-
-  /** Removes an existing Animation, canceling it if it was in progress. */
-  public void removeAnimation(int reactTag, int animationID) {
-    mUIImplementation.removeAnimation(reactTag, animationID);
-  }
-
   @Override
   @ReactMethod
   public void setJSResponder(int reactTag, boolean blockNativeResponder) {
@@ -727,8 +709,7 @@ public class UIManagerModule extends ReactContextBaseJavaModule
    * Configure an animation to be used for the native layout changes, and native views creation. The
    * animation will only apply during the current batch operations.
    *
-   * <p>TODO(7728153) : animating view deletion is currently not supported. TODO(7613721) :
-   * callbacks are not supported, this feature will likely be killed.
+   * <p>TODO(7728153) : animating view deletion is currently not supported.
    *
    * @param config the configuration of the animation for view addition/removal/update.
    * @param success will be called when the animation completes, or when the animation get
@@ -737,7 +718,7 @@ public class UIManagerModule extends ReactContextBaseJavaModule
    */
   @ReactMethod
   public void configureNextLayoutAnimation(ReadableMap config, Callback success, Callback error) {
-    mUIImplementation.configureNextLayoutAnimation(config, success, error);
+    mUIImplementation.configureNextLayoutAnimation(config, success);
   }
 
   /**
@@ -877,5 +858,10 @@ public class UIManagerModule extends ReactContextBaseJavaModule
 
     @Override
     public void onLowMemory() {}
+  }
+
+  public View resolveView(int tag) {
+    UiThreadUtil.assertOnUiThread();
+    return mUIImplementation.getUIViewOperationQueue().getNativeViewHierarchyManager().resolveView(tag);
   }
 }

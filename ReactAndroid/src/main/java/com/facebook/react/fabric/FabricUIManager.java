@@ -20,6 +20,8 @@ import androidx.annotation.Nullable;
 import androidx.annotation.UiThread;
 import android.view.View;
 import com.facebook.common.logging.FLog;
+import com.facebook.debug.holder.PrinterHolder;
+import com.facebook.debug.tags.ReactDebugOverlayTags;
 import com.facebook.infer.annotation.ThreadConfined;
 import com.facebook.proguard.annotations.DoNotStrip;
 import com.facebook.react.bridge.LifecycleEventListener;
@@ -36,6 +38,7 @@ import com.facebook.react.fabric.jsi.Binding;
 import com.facebook.react.fabric.jsi.EventBeatManager;
 import com.facebook.react.fabric.jsi.EventEmitterWrapper;
 import com.facebook.react.fabric.jsi.FabricSoLoader;
+import com.facebook.react.fabric.jsi.StateWrapperImpl;
 import com.facebook.react.fabric.mounting.MountingManager;
 import com.facebook.react.fabric.mounting.mountitems.BatchMountItem;
 import com.facebook.react.fabric.mounting.mountitems.DeleteMountItem;
@@ -48,8 +51,10 @@ import com.facebook.react.fabric.mounting.mountitems.UpdateEventEmitterMountItem
 import com.facebook.react.fabric.mounting.mountitems.UpdateLayoutMountItem;
 import com.facebook.react.fabric.mounting.mountitems.UpdateLocalDataMountItem;
 import com.facebook.react.fabric.mounting.mountitems.UpdatePropsMountItem;
+import com.facebook.react.fabric.mounting.mountitems.UpdateStateMountItem;
 import com.facebook.react.modules.core.ReactChoreographer;
 import com.facebook.react.uimanager.ReactRootViewTagGenerator;
+import com.facebook.react.uimanager.StateWrapper;
 import com.facebook.react.uimanager.ThemedReactContext;
 import com.facebook.react.uimanager.ViewManagerPropertyUpdater;
 import com.facebook.react.uimanager.ViewManagerRegistry;
@@ -65,7 +70,9 @@ import java.util.concurrent.ConcurrentHashMap;
 @SuppressLint("MissingNativeLoadLibrary")
 public class FabricUIManager implements UIManager, LifecycleEventListener {
 
-  private static final String TAG = FabricUIManager.class.getSimpleName();
+  public static final String TAG = FabricUIManager.class.getSimpleName();
+  public static final boolean DEBUG =
+      PrinterHolder.getPrinter().shouldDisplayLogMessage(ReactDebugOverlayTags.FABRIC_UI_MANAGER);
 
   private static final Map<String, String> sComponentNames = new HashMap<>();
   private static final int FRAME_TIME_MS = 16;
@@ -80,14 +87,13 @@ public class FabricUIManager implements UIManager, LifecycleEventListener {
     sComponentNames.put("Image", "RCTImageView");
     sComponentNames.put("ScrollView", "RCTScrollView");
     sComponentNames.put("Slider", "RCTSlider");
-    sComponentNames.put("ReactPerformanceLoggerFlag", "ReactPerformanceLoggerFlag");
-    sComponentNames.put("ReactTTRCRenderFlag", "ReactTTRCRenderFlag");
     sComponentNames.put("Paragraph", "RCTText");
     sComponentNames.put("Text", "RCText");
     sComponentNames.put("RawText", "RCTRawText");
     sComponentNames.put("ActivityIndicatorView", "AndroidProgressBar");
     sComponentNames.put("ShimmeringView", "RKShimmeringView");
     sComponentNames.put("TemplateView", "RCTTemplateView");
+    sComponentNames.put("AxialGradientView", "RCTAxialGradientView");
   }
 
   private Binding mBinding;
@@ -161,7 +167,7 @@ public class FabricUIManager implements UIManager, LifecycleEventListener {
     mMountingManager.removeRootView(reactRootTag);
     mReactContextForRootTag.remove(reactRootTag);
   }
-  
+
   @Override
   public void initialize() {
     mEventDispatcher.registerEventEmitter(FABRIC, new FabricEventEmitter(this));
@@ -183,16 +189,17 @@ public class FabricUIManager implements UIManager, LifecycleEventListener {
       final String componentName,
       ReadableMap props,
       boolean isLayoutable) {
-    if (UiThreadUtil.isOnUiThread()) {
-      // There is no reason to allocate views ahead of time on the main thread.
-      return;
-    }
-
     ThemedReactContext context = mReactContextForRootTag.get(rootTag);
     String component = sComponentNames.get(componentName);
     synchronized (mPreMountItemsLock) {
       mPreMountItems.add(
-          new PreAllocateViewMountItem(context, rootTag, reactTag, component, props, isLayoutable));
+          new PreAllocateViewMountItem(
+              context,
+              rootTag,
+              reactTag,
+              component != null ? component : componentName,
+              props,
+              isLayoutable));
     }
   }
 
@@ -230,6 +237,12 @@ public class FabricUIManager implements UIManager, LifecycleEventListener {
   @SuppressWarnings("unused")
   private MountItem updateLocalDataMountItem(int reactTag, ReadableMap newLocalData) {
     return new UpdateLocalDataMountItem(reactTag, newLocalData);
+  }
+
+  @DoNotStrip
+  @SuppressWarnings("unused")
+  private MountItem updateStateMountItem(int reactTag, Object stateWrapper) {
+    return new UpdateStateMountItem(reactTag, (StateWrapper) stateWrapper);
   }
 
   @DoNotStrip
