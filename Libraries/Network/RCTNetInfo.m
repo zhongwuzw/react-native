@@ -44,6 +44,7 @@ static NSString *const RCTReachabilityStateCell = @"cell";
   NSString *_host;
   BOOL _isObserving;
   RCTPromiseResolveBlock _resolve;
+  RCTNetInfo *_retainSelf;
 }
 
 RCT_EXPORT_MODULE()
@@ -94,6 +95,18 @@ static void RCTReachabilityCallback(__unused SCNetworkReachabilityRef target, SC
   return self;
 }
 
+- (void)invalidate
+{
+  [self stopObserving];
+  if (_firstTimeReachability) {
+    SCNetworkReachabilityUnscheduleFromRunLoop(self->_firstTimeReachability, CFRunLoopGetMain(), kCFRunLoopCommonModes);
+    CFRelease(self->_firstTimeReachability);
+    _firstTimeReachability = nil;
+    _resolve = nil;
+  }
+  self->_retainSelf = nil;
+}
+
 - (NSArray<NSString *> *)supportedEvents
 {
   return @[@"networkStatusDidChange"];
@@ -131,6 +144,7 @@ static void RCTReachabilityCallback(__unused SCNetworkReachabilityRef target, SC
 {
   SCNetworkReachabilityRef reachability = SCNetworkReachabilityCreateWithName(kCFAllocatorDefault, _host.UTF8String ?: "apple.com");
   SCNetworkReachabilityContext context = { 0, ( __bridge void *)self, NULL, NULL, NULL };
+  self->_retainSelf = self;
   SCNetworkReachabilitySetCallback(reachability, RCTReachabilityCallback, &context);
   SCNetworkReachabilityScheduleWithRunLoop(reachability, CFRunLoopGetMain(), kCFRunLoopCommonModes);
     

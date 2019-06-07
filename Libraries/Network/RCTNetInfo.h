@@ -9,7 +9,7 @@
 
 #import <React/RCTEventEmitter.h>
 
-@interface RCTNetInfo : RCTEventEmitter
+@interface RCTNetInfo : RCTEventEmitter <RCTInvalidating>
 
 - (instancetype)initWithHost:(NSString *)host;
 
